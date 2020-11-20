@@ -1,21 +1,101 @@
 #!/bin/bash
 
 function usersWithShells(){
-whiptail --title "List of users with shells" --msgbox "The Following users have shells." 16 60 
+whiptail --title "List of users with shells" --msgbox "The following users have shells they can log in with." 8 60 
 whiptail --title "List of users with shells" --textbox /dev/stdin 32 60 <<<"$(
 grep -v -e 'sync' -e 'bin/false' -e 'sbin/nologin' /etc/passwd)"
 }
 
-function firewallRules(){
-if (whiptail --yesno "Remove FirewallD and use IPTables?" 16 60); then
-	whiptail --textbox /dev/sddin 32 60 <<<"$(systectl disable --now )"
-	
-	
-
-else
-	whiptail --msgbox "IPTables will not be configured." 16 60
+function installSplunkForwarder(){
+if [ ! -d "/opt/splunkforwarder" ]; then
+whiptail --textbox "/opt/splunkforwarder does not exist, creating it now."
+mkdir /opt/splunkforwarder
 fi
+#whiptail -msgbox "Prepairing to install splunk forwarder"
 
+
+
+SPLUNKURL=$(whiptail --inputbox "What is the bit.ly URL? to download splunk?" --title "Splunk URL" 8 64 8 3>&1 1>&2 2>&3)
+
+
+#Trying some fancy thing that doesn't work
+#URL='https://www.splunk.com/bin/splunk/DownloadActivityServlet?architecture=x86_64&platform=linux&version=8.1.0&product=universalforwarder&filename=splunkforwarder-8.1.0-f57c09e87251-Linux-x86_64.tgz&wget=true'
+#wget --Splunk.tgz --progress=dot "$URL" 2>&1 |\
+#grep "%" |\
+#sed -u -e "s,\.,,g" | awk '(print $2)' | sed -u -e "s,\%,,g" | whiptail --gauge "Download" 10 100
+}
+
+function firewallRules(){
+FIREWALLLOOPVAR=0
+whiptail --title "Firewall Rules" --msgbox "Currently by Default this Script uses IP-Tables. I do plan on adding support for firewalld later. For the Time being this script will make you disable firewallD before you can add IP Tables Rules. FirewallD may or may not be running on your system depending on Distro and Version." 16 60
+
+#if (whiptail --yesno "Remove FirewallD and use IPTables?" 16 60); then
+#	whiptail --textbox /dev/sddin 32 60 <<<"$(systectl disable --now )"
+#else 
+
+#fi
+while [ $FIREWALLLOOPVAR -le 0 ]
+do
+	RULESELECT=$(whiptail --title "Firewall Rules" --fb --menu "Configure Firewall Rules" 16 60 8 \
+	"Inbound" "Modify Inbound Rules" \
+	"Outound" "Modify Outbound Rules" \
+	"DDOS" "Apply rules for DDoS Protection" \
+	"IPv6" "Block IPv6" \
+	"Exit" "Exit" 3>&1 1>&2 2>&3)
+
+	case $RULESELECT in
+		Inbound)
+			INBOUNDRULES=$(whiptail --title "IPv4 - Inbound Rules" --checklist "Inbound Rules" 32 60 8 \
+				"22-TCP" "SSH" OFF \
+				"25-TCP" "SMTP" OFF \
+				"53-UDP" "DNS over UDP" OFF \
+				"53-TCP" "DNS over TCP" OFF \
+				"80-TCP" "HTTP" OFF \
+				"110-TCP" "POP3" OFF \
+				"143-TCP" "IMAP" OFF \
+				"443-TCP" "HTTPS" OFF \
+				"lo" "Localhost Traffic" ON)
+
+			case $INBOUNDRULES in
+				22-TCP)
+					iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+				;;
+				25-TCP)
+					iptables -A INPUT -p tcp --dport 25 -j ACCEPT
+				;;
+				
+				53-UDP)
+					iptables -A INPUT -p udp --dport 53 -j ACCEPT			
+				;;
+				80-TCP)
+					iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+				;;
+				110-TCP)
+					iptables -A INPUT -p tcp --dport 110 -j ACCEPT
+				;;
+
+				443-TCP)
+					iptables -A INPUT -p tcp --dport 442 -j ACCEPT
+				;;
+				lo)
+				;;
+			esac
+		;;
+		Outbound)
+			OUTBOUNDRULES=$(whiptail --title "IPv4 - Outbound Rules" --checklist "Outbound Rules" 32 60 8 \
+                                "22-TCP" "SSH" OFF \
+                                "53-UDP" "DNS" OFF \
+                                "80-TCP" "HTTP" OFF \
+                                "443-TCP" "HTTPS" OFF \
+				"lo" "Localhost Traffic" ON)
+
+		;;
+		Exit)
+			FIREWALLLOOPVAR=10
+		;;
+	esac
+
+done
 }
 
 
@@ -27,22 +107,27 @@ EXITVAR=0
 while [ $EXITVAR -le 0 ]
 do
 
-      MENUSELECT=$(whiptail --title "First 15" --fb --menu "Where to Start" 15 60 4 \
-        "1" "View Users with Shells" \
-        "2" "Firewall Rules" \
-        "10" "Exit" 3>&1 1>&2 2>&3)
-    case $MENUSELECT in
-        1)
+	MENUSELECT=$(whiptail --title "First 15" --fb --menu "Where to Start" 15 60 4 \
+	"U" "View Users with Shells" \
+	"F" "Firewall Rules" \
+	"S" "Install Splunk Forwarder" \
+	"E" "Exit" 3>&1 1>&2 2>&3)
+	
+	case $MENUSELECT in
+	U)
 		usersWithShells
-        ;;
-        2)
+	;;
+	F)
 		firewallRules
-        ;;
-        10)
+	;;
+	E)
 		whiptail --title "Exit" --msgbox "GoodBye!" 8 45
 		EXITVAR=5
-        ;;
-    esac
+    ;;
+    S)
+        installSplunkForwarder
+    ;;
+	esac
 done
 } 
 
