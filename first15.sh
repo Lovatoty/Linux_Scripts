@@ -173,5 +173,9 @@ do
 	esac
 done
 } 
+if (( $EUID != 0 )); then
+    whiptail --title "Error" --msgbox "ERROR. Not Root User! Exiting." 8 44
+    exit
+fi
 
 menuFunction
