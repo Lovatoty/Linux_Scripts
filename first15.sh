@@ -7,7 +7,7 @@ grep -v -e 'sync' -e 'bin/false' -e 'sbin/nologin' /etc/passwd)"
 }
 
 function installSplunkForwarder(){
-if [ ! -d "/opt/splunkforwarder" ]; then
+if [[ ! -d /opt/splunkforwarder ]]; then
 whiptail --textbox "/opt/splunkforwarder does not exist, creating it now."
 mkdir /opt/splunkforwarder
 fi
@@ -24,27 +24,7 @@ SPLUNKURL=$(whiptail --inputbox "What is the bit.ly URL? to download splunk?" --
 #grep "%" |\
 #sed -u -e "s,\.,,g" | awk '(print $2)' | sed -u -e "s,\%,,g" | whiptail --gauge "Download" 10 100
 }
-
-function firewallRules(){
-FIREWALLLOOPVAR=0
-whiptail --title "Firewall Rules" --msgbox "Currently by Default this Script uses IP-Tables. I do plan on adding support for firewalld later. For the Time being this script will make you disable firewallD before you can add IP Tables Rules. FirewallD may or may not be running on your system depending on Distro and Version." 16 60
-
-#if (whiptail --yesno "Remove FirewallD and use IPTables?" 16 60); then
-#	whiptail --textbox /dev/sddin 32 60 <<<"$(systectl disable --now )"
-#else 
-
-#fi
-while [ $FIREWALLLOOPVAR -le 0 ]
-do
-	RULESELECT=$(whiptail --title "Firewall Rules" --fb --menu "Configure Firewall Rules" 16 60 8 \
-	"Inbound" "Modify Inbound Rules" \
-	"Outound" "Modify Outbound Rules" \
-	"DDOS" "Apply rules for DDoS Protection" \
-	"IPv6" "Block IPv6" \
-	"Exit" "Exit" 3>&1 1>&2 2>&3)
-
-	case $RULESELECT in
-		Inbound)
+function FIREWALL_INBOUND_RULES(){
 			INBOUNDRULES=$(whiptail --title "IPv4 - Inbound Rules" --checklist "Inbound Rules" 32 60 8 \
 				"22-TCP" "SSH" OFF \
 				"25-TCP" "SMTP" OFF \
@@ -54,7 +34,7 @@ do
 				"110-TCP" "POP3" OFF \
 				"143-TCP" "IMAP" OFF \
 				"443-TCP" "HTTPS" OFF \
-				"lo" "Localhost Traffic" ON)
+				"lo" "Localhost Traffic" ON 3>&1 1>&2 2>&3)
 
 			case $INBOUNDRULES in
 				22-TCP)
@@ -80,17 +60,80 @@ do
 				lo)
 				;;
 			esac
-		;;
-		Outbound)
-			OUTBOUNDRULES=$(whiptail --title "IPv4 - Outbound Rules" --checklist "Outbound Rules" 32 60 8 \
-                                "22-TCP" "SSH" OFF \
-                                "53-UDP" "DNS" OFF \
-                                "80-TCP" "HTTP" OFF \
-                                "443-TCP" "HTTPS" OFF \
-				"lo" "Localhost Traffic" ON)
 
+}
+function FIREWALL_OUTBOUND_RULES(){
+			OUTBOUNDRULES=$(whiptail --title "IPv4 - Outbound Rules" --checklist "Outbound Rules" 32 60 8 \
+                "22-TCP" "SSH" OFF \
+                "53-UDP" "DNS" OFF \
+                "80-TCP" "HTTP" OFF \
+                "443-TCP" "HTTPS" OFF \
+				"lo" "Localhost Traffic" ON 3>&1 1>&2 2>&3)
+
+				case $OUTBOUNDRULES in
+				22-TCP)
+					iptables -A OUTPUT -p tcp --dport 22 -j ACCEPT
+				;;
+				25-TCP)
+					iptables -A OUTPUT -p tcp --dport 25 -j ACCEPT
+				;;
+				
+				53-UDP)
+					iptables -A OUTPUT -p udp --dport 53 -j ACCEPT			
+				;;
+				80-TCP)
+					iptables -A OUTPUT -p tcp --dport 80 -j ACCEPT
+				;;
+				110-TCP)
+					iptables -A OUTPUT -p tcp --dport 110 -j ACCEPT
+				;;
+
+				443-TCP)
+					iptables -A OUTPUT -p tcp --dport 442 -j ACCEPT
+				;;
+				lo)
+				;;
+			esac
+}
+function FIREALL_DDOS_PROTECTION_RULES(){
+    echo hello
+}
+function FIREWALL_BLOCK_IPV6(){
+    echo hello
+}
+function firewallRules(){
+FIREWALLLOOPVAR=0
+whiptail --title "Firewall Rules" --msgbox "Currently by Default this Script uses IP-Tables. I do plan on adding support for firewalld later. For the Time being this script will make you disable firewallD before you can add IP Tables Rules. FirewallD may or may not be running on your system depending on Distro and Version." 16 60
+
+#if (whiptail --yesno "Remove FirewallD and use IPTables?" 16 60); then
+#	whiptail --textbox /dev/sddin 32 60 <<<"$(systectl disable --now )"
+#else 
+
+#fi
+while [ $FIREWALLLOOPVAR -le 0 ]
+do
+	RULESELECT=$(whiptail --title "Firewall Rules" --fb --menu "Configure Firewall Rules" 16 60 8 \
+	"I" "Modify Inbound Rules" \
+	"O" "Modify Outbound Rules" \
+	"D" "Apply rules for DDoS Protection" \
+	"6" "Block IPv6" \
+	"E" "Exit" 3>&1 1>&2 2>&3)
+
+	case $RULESELECT in
+		I)
+            FIREWALL_INBOUND_RULES
 		;;
-		Exit)
+		O)
+            FIREWALL_OUTBOUND_RULES
+				
+		;;
+		D)
+            FIREALL_DDOS_PROTECTION_RULES
+		;;
+		6)
+            FIREWALL_BLOCK_IPV6
+		;;
+		E)
 			FIREWALLLOOPVAR=10
 		;;
 	esac
