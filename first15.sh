@@ -7,24 +7,28 @@ grep -v -e 'sync' -e 'bin/false' -e 'sbin/nologin' /etc/passwd)"
 }
 
 function installSplunkForwarder(){
-if [[ ! -d /opt/splunkforwarder ]]; then
-whiptail --textbox "/opt/splunkforwarder does not exist, creating it now."
+if [[ ! -e /opt/splunkforwarder ]]; then
+whiptail --msgbox "/opt/splunkforwarder does not exist, creating it now." 8 44
 mkdir /opt/splunkforwarder
 fi
-#whiptail -msgbox "Prepairing to install splunk forwarder"
-
-
 
 SPLUNKURL=$(whiptail --inputbox "What is the bit.ly URL? to download splunk?" --title "Splunk URL" 8 64 8 3>&1 1>&2 2>&3)
 
 
-#Trying some fancy thing that doesn't work
-#URL='https://www.splunk.com/bin/splunk/DownloadActivityServlet?architecture=x86_64&platform=linux&version=8.1.0&product=universalforwarder&filename=splunkforwarder-8.1.0-f57c09e87251-Linux-x86_64.tgz&wget=true'
-#wget --Splunk.tgz --progress=dot "$URL" 2>&1 |\
-#grep "%" |\
-#sed -u -e "s,\.,,g" | awk '(print $2)' | sed -u -e "s,\%,,g" | whiptail --gauge "Download" 10 100
+wget -O /opt/splunkforwarder/splunk.tgz $SPLUNKURL
+whiptail --title "Splunk Download" --msgbox "Download Done, prepairing to extract" 8 44
+tar -xzf /opt/splunkforwarder/splunk.tgz
+whiptail --title "Splunk Download" --msgbox "Extracting Complete" 8 44
+
 }
 function FIREWALL_INBOUND_RULES(){
+
+			whiptail --title "IPv4 Inbound Rules" --msgbox "Flushing rules and setting default policy to drop" 8 44 
+			iptables -F INPUT
+			iptables -F FORWARD
+			iptables -P INPUT DROP
+			iptables -P FORWARD DROP
+
 			INBOUNDRULES=$(whiptail --title "IPv4 - Inbound Rules" --checklist "Inbound Rules" 32 60 8 \
 				"22-TCP" "SSH" OFF \
 				"25-TCP" "SMTP" OFF \
@@ -63,6 +67,11 @@ function FIREWALL_INBOUND_RULES(){
 
 }
 function FIREWALL_OUTBOUND_RULES(){
+
+			whiptail --title "IPv4 Outbound Rules" --msgbox "Flushing rules and setting default policy to drop" 8 44 
+			iptables -F OUTPUT
+			iptables -P OUTPUT DROP
+
 			OUTBOUNDRULES=$(whiptail --title "IPv4 - Outbound Rules" --checklist "Outbound Rules" 32 60 8 \
                 "22-TCP" "SSH" OFF \
                 "53-UDP" "DNS" OFF \
@@ -99,7 +108,15 @@ function FIREALL_DDOS_PROTECTION_RULES(){
     echo hello
 }
 function FIREWALL_BLOCK_IPV6(){
-    echo hello
+    ip6tables -P INPUT DROP
+    ip6tables -P FORWARD DROP
+    ip6tables -P OUTPUT DROP
+	whiptail --msgbox "IPv6 Chains Set to Block" 8 44
+    
+}
+function VIEW_CURRENT_FIREWALL_RULES(){
+	whiptail --title "IPTables IPv4 Chains" --textbox /dev/stdin 32 60 <<<"$(iptables -L -v -n)"
+	whiptail --title "IPTables IPv6 Chains" --textbox /dev/stdin 32 60 <<<"$(ip6tables -L -v -n)"
 }
 function firewallRules(){
 FIREWALLLOOPVAR=0
@@ -113,6 +130,7 @@ whiptail --title "Firewall Rules" --msgbox "Currently by Default this Script use
 while [ $FIREWALLLOOPVAR -le 0 ]
 do
 	RULESELECT=$(whiptail --title "Firewall Rules" --fb --menu "Configure Firewall Rules" 16 60 8 \
+	"V" "View Current Rules" \
 	"I" "Modify Inbound Rules" \
 	"O" "Modify Outbound Rules" \
 	"D" "Apply rules for DDoS Protection" \
@@ -120,7 +138,10 @@ do
 	"E" "Exit" 3>&1 1>&2 2>&3)
 
 	case $RULESELECT in
-		I)
+        V)
+            VIEW_CURRENT_FIREWALL_RULES
+        ;;
+        I)
             FIREWALL_INBOUND_RULES
 		;;
 		O)
