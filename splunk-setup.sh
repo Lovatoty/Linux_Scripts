@@ -1,13 +1,5 @@
 #!/bin/bash
 
-#This function is ultimately not needed because the folder is created by the tar
-#function installSplunkForwarder(){
-#need to fix /opt
-#if [[ ! -e /opt/splunkforwarder ]]; then
-#whiptail --msgbox "/opt/splunkforwarder does not exist, creating it now." 8 44
-#mkdir /opt/splunkforwarder
-#fi
-
 #Creating a new user so we are not running splunk as root
 #this adds complexity to the install, but offers some level of protection
 #note we will have to configure SELinux for splunk to work properly
@@ -37,7 +29,7 @@ FORWARDSERVER=$(whiptail --inputbox "What is the IP address and port number of t
 
 ./splunk add forward-server $FORWARDSERVER
 
-##TODO add SELinux stuff here
+#Note, add SELinux Support in the SELinux script. We should also do an AppArmor script as well.
 
 
 #TODO add something to monitor. /var/log should cover most bases
@@ -45,5 +37,4 @@ FORWARDSERVER=$(whiptail --inputbox "What is the IP address and port number of t
 
 
 ./splunk restart
-#}
 
