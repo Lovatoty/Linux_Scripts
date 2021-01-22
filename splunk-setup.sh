@@ -25,7 +25,7 @@ chmod 770 splunk
 
 #ADD FORWARD SERVER
 #TODO Please Test First!!
-FORWARDSERVER=$(whiptail --inputbox "What is the IP address and port number of the forwarder server?\nUse the format IP:Port" --title "Splunk Forwarder Configuratuib" 8 64 8 3>&1 1>&2 2>&3)
+FORWARDSERVER=$(whiptail --inputbox "What is the IP address and port number of the forwarder server?\nUse the format IP:Port. Default port is 9997" --title "Splunk Forwarder Configuratuib" 8 64 8 3>&1 1>&2 2>&3)
 
 ./splunk add forward-server $FORWARDSERVER
 
