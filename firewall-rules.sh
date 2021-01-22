@@ -5,24 +5,27 @@
 #TODO add DDoS protection and contrack
 function FIREWALL_INBOUND_RULES(){
 
-			whiptail --title "IPv4 Inbound Rules" --msgbox "Flushing rules and setting default policy to drop" 8 44 
+whiptail --title "IPv4 Inbound Rules" --msgbox "Flushing rules and setting default policy to drop" 8 44 
 			iptables -F INPUT
 			iptables -F FORWARD
 			iptables -P INPUT DROP
 			iptables -P FORWARD DROP
 
-			INBOUNDRULES=$(whiptail --title "IPv4 - Inbound Rules" --checklist "Inbound Rules" 32 60 8 \
-				"22-TCP" "SSH" OFF \
-				"25-TCP" "SMTP" OFF \
-				"53-UDP" "DNS over UDP" OFF \
-				"53-TCP" "DNS over TCP" OFF \
-				"80-TCP" "HTTP" OFF \
-				"110-TCP" "POP3" OFF \
-				"143-TCP" "IMAP" OFF \
-				"443-TCP" "HTTPS" OFF \
-				"lo" "Localhost Traffic" ON 3>&1 1>&2 2>&3)
+whiptail --title "IPv4 - Inbound Rules" --checklist --separate-output "Inbound Rules" 32 60 15 \
+"22-TCP" "" OFF \
+"25-TCP" "" OFF \
+"53-UDP" "" ON \
+"53-TCP" "" OFF \
+"80-TCP" "" OFF \
+"110-TCP" "" OFF \
+"143-TCP" "" OFF \
+"443-TCP" "" OFF \
+"8089" "" ON \
+"lo" "" ON 2>results
 
-			case $INBOUNDRULES in
+			while read choice
+			do
+			case $choice in
 				22-TCP)
 					iptables -A INPUT -p tcp --dport 22 -j ACCEPT
 					echo "Adding Except Rule for port 22 inbound."
@@ -56,8 +59,10 @@ function FIREWALL_INBOUND_RULES(){
 					iptables -A INPUT -i lo -j ACCEPT
 					echo "Enabling Localhost Communication"
 				;;
+				*)
+				;;
 			esac
-
+		done < results
 }
 function FIREWALL_OUTBOUND_RULES(){
 
@@ -65,13 +70,13 @@ function FIREWALL_OUTBOUND_RULES(){
 #iptables -F OUTPUT
 #iptables -P OUTPUT DROP
 
-whiptail --title "IPv4 - Outbound Rules" --seperate-output "Choose:" --checklist "Outbound Rules" 32 60 8 \
+whiptail --title "IPv4 - Outbound Rules" --separate-output "Choose:" --checklist "Outbound Rules" 32 60 8 \
                 "22-TCP" "SSH" OFF \
                 "53-UDP" "DNS" OFF \
                 "80-TCP" "HTTP" OFF \
                 "443-TCP" "HTTPS" OFF \
                 "9997" "Splunk Forwarder" ON \
-				"lo" "Localhost Traffic" ON 2>results
+		"lo" "Localhost Traffic" ON 2>results
 
 				while read OUTBOUNDRULES
 				do
@@ -103,7 +108,7 @@ whiptail --title "IPv4 - Outbound Rules" --seperate-output "Choose:" --checklist
 					echo "Adding Except Rule for port 442 outbound."
 				;;
 				9997)
-					iptables -A OUTPUT -p tcp --sport 9997 -j ACCEPT
+					iptables -A OUTPUT -p tcp --dport 9997 -j ACCEPT
 					echo "Adding Except Rule for port 9997 outbound."
 				;;
 				lo)
