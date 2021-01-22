@@ -11,7 +11,9 @@
 #Creating a new user so we are not running splunk as root
 #this adds complexity to the install, but offers some level of protection
 #note we will have to configure SELinux for splunk to work properly
-useradd --system --disabed-login --shell=/bin/bash --group splunk
+
+#TODO check if splunk needs a shell or not.
+useradd --system --disabed-login --shell=/bin/su --group splunk
 
 cd /opt
 SPLUNKURL=$(whiptail --inputbox "What is the bit.ly URL? to download splunk?" --title "Splunk URL" 8 64 8 3>&1 1>&2 2>&3)
@@ -27,18 +29,18 @@ cd /opt/splunkforwarder/bin
 chmod 770 splunk
 
 ./splunk start --accept-license
-./splunk enable boot-start
+./splunk enable boot-start -user splunk
 
 #ADD FORWARD SERVER
-##Please Test First!!
+#TODO Please Test First!!
 FORWARDSERVER=$(whiptail --inputbox "What is the IP address and port number of the forwarder server?\nUse the format IP:Port" --title "Splunk Forwarder Configuratuib" 8 64 8 3>&1 1>&2 2>&3)
 
 ./splunk add forward-server $FORWARDSERVER
 
-##add SELinux stuff here
+##TODO add SELinux stuff here
 
 
-#add something to monitor. /var/log should cover most bases
+#TODO add something to monitor. /var/log should cover most bases
 ./splunk add monitor /var/log
 
 
