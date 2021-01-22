@@ -12,15 +12,16 @@ whiptail --title "IPv4 Inbound Rules" --msgbox "Flushing rules and setting defau
 			iptables -P FORWARD DROP
 
 whiptail --title "IPv4 - Inbound Rules" --checklist --separate-output "Inbound Rules" 32 60 15 \
-"22-TCP" "" OFF \
-"25-TCP" "" OFF \
-"53-UDP" "" ON \
-"53-TCP" "" OFF \
-"80-TCP" "" OFF \
-"110-TCP" "" OFF \
-"143-TCP" "" OFF \
-"443-TCP" "" OFF \
-"8089" "" ON \
+"22-TCP" "Inbound SSH" OFF \
+"25-TCP" "Inbound SMTP" OFF \
+"53-UDP" "Inbound DNS" ON \
+"53-TCP" "Inbound DNS over TCP" OFF \
+"80-TCP" "Inbound HTTP" OFF \
+"110-TCP" "Inbound POP3" OFF \
+"123-UDP" "Inbound NTP" ON \
+"143-TCP" "Inbound IMAP" OFF \
+"443-TCP" "INBOUND HTTPS" OFF \
+"8089" "Inbound Splunk" ON \
 "lo" "" ON 2>results
 
 			while read choice
@@ -47,7 +48,9 @@ whiptail --title "IPv4 - Inbound Rules" --checklist --separate-output "Inbound R
 					iptables -A INPUT -p tcp --dport 110 -j ACCEPT
 					echo "Adding Except Rule for port 110 inbound."
 				;;
-
+				123-UDP)
+					iptables -A INPUT -p udp --dport 123 -j ACCEPT
+				;;
 				443-TCP)
 					iptables -A INPUT -p tcp --dport 443 -j ACCEPT
 					echo "Adding Except Rule for port 443 inbound."
@@ -70,12 +73,13 @@ function FIREWALL_OUTBOUND_RULES(){
 #iptables -F OUTPUT
 #iptables -P OUTPUT DROP
 
-whiptail --title "IPv4 - Outbound Rules" --separate-output "Choose:" --checklist "Outbound Rules" 32 60 8 \
-                "22-TCP" "SSH" OFF \
-                "53-UDP" "DNS" OFF \
-                "80-TCP" "HTTP" OFF \
-                "443-TCP" "HTTPS" OFF \
-                "9997" "Splunk Forwarder" ON \
+whiptail --title "IPv4 - Outbound Rules" --checklist --separate-output  "Outbound Rules" 32 60 8 \
+                "22-TCP" "Outbound SSH" OFF \
+		"25-TCP" "Outbound SMTP" OFF \
+                "53-UDP" "Outbound DNS" OFF \
+                "80-TCP" "Outbound HTTP" OFF \
+                "443-TCP" "Outbound HTTPS" OFF \
+                "9997" "Outbound Splunk Forwarder" ON \
 		"lo" "Localhost Traffic" ON 2>results
 
 				while read OUTBOUNDRULES
