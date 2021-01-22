@@ -5,7 +5,7 @@
 #note we will have to configure SELinux for splunk to work properly
 
 #TODO check if splunk needs a shell or not.
-useradd --system --disabed-login --shell=/bin/su --group splunk
+useradd --system --disabed-login -m -d /opt/splunkforwarder --shell=/bin/su --group splunk
 
 cd /opt
 SPLUNKURL=$(whiptail --inputbox "What is the bit.ly URL? to download splunk?" --title "Splunk URL" 8 64 8 3>&1 1>&2 2>&3)
